@@ -28,7 +28,7 @@ class InvoiceItem extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['id_invoice', 'item', 'total'], 'required'],
+            [['item', 'total'], 'required'],
             [['id_invoice'], 'integer'],
             [['item'], 'string'],
             [['total'], 'number'],

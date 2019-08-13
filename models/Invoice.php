@@ -23,6 +23,10 @@ use Yii;
  */
 class Invoice extends \yii\db\ActiveRecord
 {
+    const STATUS_CREATED = 'created'; //invoice diterbitkan
+    const STATUS_PAID = 'paid'; //invoice dibayar
+    const STATUS_CANCELED = 'canceled'; //invoice dicancel
+
     /**
      * {@inheritdoc}
      */
@@ -37,10 +41,10 @@ class Invoice extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
+            [['due_date', 'name', 'attn', 'address', 'status', 'created_at'], 'required'],
             [['due_date', 'transaction_date', 'created_at'], 'safe'],
             [['address'], 'string'],
             [['amount', 'payment'], 'number'],
-            [['status', 'created_at'], 'required'],
             [['invoice_number', 'transaction_id'], 'string', 'max' => 10],
             [['name', 'status'], 'string', 'max' => 15],
             [['attn'], 'string', 'max' => 30],
@@ -68,5 +72,16 @@ class Invoice extends \yii\db\ActiveRecord
             'status' => 'Status',
             'created_at' => 'Created At',
         ];
+    }
+
+    public function afterSave($insert, $changedAttributes)
+    {
+        if($insert){
+            //sebagai sample saja untuk mengenerate nomor invoice
+            //format : tahun-bulan-id database
+            $number = date('Y').date('m').str_pad($this->id,4,0,STR_PAD_LEFT);
+            $this->updateAttributes(['invoice_number'=>$number]);
+        }
+        parent::afterSave($insert, $changedAttributes);
     }
 }
