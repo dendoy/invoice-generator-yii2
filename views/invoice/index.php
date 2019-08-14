@@ -25,22 +25,23 @@ $this->params['breadcrumbs'][] = $this->title;
         'filterModel' => $searchModel,
         'columns' => [
             ['class' => 'yii\grid\SerialColumn'],
-
-            'id',
             'invoice_number',
             'due_date',
-            'name',
             'attn',
-            //'address:ntext',
-            //'amount',
+            'amount',
             //'transaction_date',
-            //'payment_method',
             //'transaction_id',
-            //'payment',
-            //'status',
-            //'created_at',
+            [
+                'class' => 'yii\grid\ActionColumn',
+                'template'=>'{view} {update} {payment} {delete}',
+                'buttons'=>[
+                    'payment'=> function($url,$model){
+                        if($model->status==\app\models\Invoice::STATUS_CREATED)
+                            return Html::a('<span class="glyphicon glyphicon-ok"></span>',\yii\helpers\Url::toRoute(['invoice/payment','id'=>$model->id]),['title'=>'paid']);
+                    },
+                ]
 
-            ['class' => 'yii\grid\ActionColumn'],
+            ],
         ],
     ]); ?>
 

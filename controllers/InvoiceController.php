@@ -4,9 +4,11 @@ namespace app\controllers;
 
 use app\models\InvoiceItem;
 use app\models\Model;
+use kartik\mpdf\Pdf;
 use Yii;
 use app\models\Invoice;
 use app\models\InvoiceSearch;
+use yii\data\ActiveDataProvider;
 use yii\helpers\ArrayHelper;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
@@ -50,16 +52,46 @@ class InvoiceController extends Controller
     }
 
     /**
-     * Displays a single Invoice model.
+     * generate pdf .
      * @param integer $id
      * @return mixed
      * @throws NotFoundHttpException if the model cannot be found
      */
     public function actionView($id)
     {
-        return $this->render('view', [
-            'model' => $this->findModel($id),
+        // get your HTML raw content without any layouts or scripts
+        $model = $this->findModel($id);
+        $items = InvoiceItem::find()->where(['id_invoice'=>$id])->all();
+        $content = $this->renderPartial('view',['model'=>$model,'items'=>$items]);
+
+        // setup kartik\mpdf\Pdf component
+        $pdf = new Pdf([
+            // set to use core fonts only
+            'mode' => Pdf::MODE_CORE,
+            // A4 paper format
+            'format' => Pdf::FORMAT_A4,
+            // portrait orientation
+            'orientation' => Pdf::ORIENT_PORTRAIT,
+            // stream to browser inline
+            'destination' => Pdf::DEST_BROWSER,
+            // your html content input
+            'content' => $content,
+            // format content from your own css file if needed or use the
+            // enhanced bootstrap css built by Krajee for mPDF formatting
+            'cssFile' => '@vendor/kartik-v/yii2-mpdf/src/assets/kv-mpdf-bootstrap.min.css',
+            // any css to be embedded if required
+            'cssInline' => '.kv-heading-1{font-size:18px}',
+            // set mPDF properties on the fly
+            'options' => ['title' => 'Invoice number'],
+            // call mPDF methods on the fly
+            'methods' => [
+                'SetHeader'=>false,
+                'SetFooter'=>false,
+            ]
         ]);
+
+        // return the pdf output as per the destination setting
+        return $pdf->render();
     }
 
     /**
@@ -239,5 +271,37 @@ class InvoiceController extends Controller
         }
 
         throw new NotFoundHttpException('The requested page does not exist.');
+    }
+
+    //untuk proses payment
+    public function actionPayment($id){
+        //cek apakah status invoice masih 'created'
+        $model = $this->findModel($id);
+        if($model->status !== Invoice::STATUS_CREATED)
+            throw new NotFoundHttpException('The requested page does not exist.');
+
+        //tambahkan skenario payment untuk mengaktifkan rule pada model
+        $model->scenario = 'payment';
+        $model->transaction_date = date('Y-m-d');
+        $model->payment = $model->amount;
+
+        //query data item invoice untuk ditampilkan
+        $items = new ActiveDataProvider([
+            'query' => InvoiceItem::find()->where(['id_invoice'=>$id]),
+        ]);
+
+        if($model->load(Yii::$app->request->post())){
+            //ganti status menjadi 'paid'
+            $model->status = Invoice::STATUS_PAID;
+            if($model->save()){
+                Yii::$app->session->setFlash('success', 'Data payment telah berhasil disimpan');
+                return $this->redirect(['invoice/index']);
+            }
+        }
+
+        return $this->render('payment', [
+            'model' => $model,
+            'items' => $items
+        ]);
     }
 }

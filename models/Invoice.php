@@ -41,6 +41,7 @@ class Invoice extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
+            [['payment','transaction_date','payment_method','transaction_id'],'required','on'=>'payment'],
             [['due_date', 'name', 'attn', 'address', 'status', 'created_at'], 'required'],
             [['due_date', 'transaction_date', 'created_at'], 'safe'],
             [['address'], 'string'],
